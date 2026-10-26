@@ -18,8 +18,8 @@ addressline={In-house research}, city={Beijing}, country={China}}
 Finite-element analysis of cage induction motors couples magnetic field
 unknowns with circuit unknowns and, in multi-pole geometries, periodic
 sector constraints. We show that this class of simulation fails in a
-characteristic way: the solver converges, network conservation residuals
-are exactly zero, and no warning is emitted --- yet the reported quantity
+characteristic way: the solver converges, network conservation residuals sit below
+display precision, and no warning is emitted --- yet the reported quantity
 is wrong. We document three forensic cases on an open-source GetDP~4.0.0
 toolchain: (A)~a sparse direct solver (MUMPS) aborting on a workspace-budget
 limit (\texttt{INFO(1)=-19}, ICNTL(23)) on a system that an independent
@@ -113,6 +113,53 @@ reveals the failure.
 
 \begin{figure}[t]\centering\includegraphics[width=0.85\columnwidth]{../../figure/fig1_threshold_ladder.pdf}
 \caption{Failure threshold ladder for the scaled cage model: MUMPS outcome vs.\ geometry scale factor and solver. [Data: data/raw/case1\_scale\_ladder.]\label{fig:threshold}}\end{figure}
+\section{Model and Methods}
+\textbf{Formulation.} All solves use the frequency-domain magnetic
+quasi-static $A$-field formulation of GetDP~4.0.0 (first-order
+triangular elements, single process) coupled to the squirrel-cage
+circuit through the \\texttt{Network} constraint: one branch per bar
+($N_b{=}16$) plus top- and bottom-ring $R$--$L$ segments, with the
+per-element global term enforcing branch current injection. KCL is
+checked a posteriori as the relative mismatch between summed bar
+currents and ring currents at every node (displayed residuals round to
+$0.0$; the raw field stores the full-precision value).
+
+\textbf{Baseline and scaling.} The baseline is a 12-slot/4-pole cage
+ASM ($R_{si}{=}30$\,mm, $j_s{=}3$\,A/mm$^2$ peak, 50\,Hz, linear
+iron $\mu_r{=}1000$). Case~A scales the geometry by
+$\chi\in\{1, 1.5, 1.75, 2.0, 3.067\}$ (uniform factor on all radial
+dimensions; the bar-count and slot count are fixed); the largest mesh
+counts 116{,}476 nodes and 232{,}078 triangles with a $2.5^\circ$
+angular mesh constraint around slots.
+
+\textbf{Solvers.} The tool chain links GetDP to PETSc~3.25.5
+(\texttt{preonly}+\texttt{PCLU}); the direct kernel is either MUMPS
+5.8.2 (with out-of-core \texttt{ICNTL(22)=1}, workspace
+\texttt{ICNTL(23)=8000\,MB} where noted) or serial SuperLU from the
+same PETSc build. Residuals are reported as $\|r\|_2/\|b\|_2$ of the
+final linear system. All runs run offline, single machine, no MPI.
+
+\textbf{Extraction.} $B_{g1}$ is the fundamental of the air-gap
+flux-density FFT on a circumferential sample circle; torque is the
+time-averaged Maxwell stress-tube integral. Every manuscript number
+traces to a bundled \texttt{data/raw/} artefact; Table~\ref{tab:cases}
+summarises the three cases.
+
+\begin{table}[t]\centering
+\caption{The three forensic cases at a glance.}\label{tab:cases}
+\small
+\begin{tabular}{@{}p{0.14\columnwidth}p{0.30\columnwidth}p{0.26\columnwidth}p{0.14\columnwidth}@{}}
+\hline
+Case & Failure signature & Consequence & Audit check \\
+\hline
+A & MUMPS budget abort (\texttt{-19}), all-NaN field silently propagated & no solution; infeasibility \emph{appearance} & A1--A3 (completeness, numerics, cross-solver) \\
+B & half-field solve at intermediate $\chi$, no diagnostic & $B_{g1}$ at 58\% of self-consistent value & A4 (same-scale regression) \\
+C & $90^\circ$ sector: uniform-sign violation, KCL $=0.000$ & $\times1.44$ flux, $\times1.54$ torque & A5 (uniform-sign pre-check) \\
+\hline
+\end{tabular}
+\end{table}
+
+
 \section{Case A: False Infeasibility}\label{sec:caseA}
 A scaled 16-bar cage model ($\chi$ = geometric scale factor on the
 12-slot/4-pole ASM baseline) is solved frequency-domain at slip $s=1$.
@@ -123,7 +170,7 @@ propagated through the pipeline in 37\,s; and at $\chi=3.067$ the same failure p
 out-of-core settings (81.2\,s, all-NaN). Four exclusions pin the cause:
 (i) a pure-field bisection with all circuit terms commented out still
 reports $-19$; (ii) mesh quality, group integrity, and Dirichlet
-placement are identical across the threshold; (iii) bar-ratio
+placement are comparable across the threshold; (iii) bar-ratio
 normalization does not rescue $\chi=3.067$; and (iv) the serial
 SuperLU LU of the identical matrix converges in 26\,s to residual
 $2.28\times10^{-5}$, with torque $T=0.7477$\,N\,m and $B_{g1}=
@@ -138,9 +185,6 @@ historical $\chi=2$ failure also carried a bar-ratio distortion:
 with the ratio normalized, $\chi=2$ solves in both solvers ($T=
 0.2495$\,N\,m, $B_{g1}=0.0363$\,T), moving the failure band to
 $(\chi\,2.0, 3.067]$. All numbers trace to data/raw/case1\_*.]
-\begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig2_cross_solver.pdf}
-\caption{Cross-solver decision: same matrix aborted by MUMPS on ICNTL(23) budget, converged by SuperLU, quantified.
-[Data: data/raw/case1\_cross\_solver.]\label{fig:cross}}\end{figure}
 
 \section{Case B: Silent Degradation}\label{sec:caseB}
 At $\chi=1.5$ the solve completes without NaNs but $B_{g1}=0.0663$\,T is
@@ -169,7 +213,7 @@ The protocol ships as an executable reference implementation
 (\texttt{src/audit\_protocol.py}, bundled): steps A1--A5 consume the
 solver reports directly and emit a verdict with per-step evidence; its
 doctest suite is driven by the archived FAIL-branch and PASS-branch
-reports of Section~\ref{sec:audit} (doctest-driven: the archived
+reports (doctest-driven: the archived
 cross-solver pair passes with the scaled-geometry disclosure semantics,
 and two synthetic fixtures exercise the NaN-propagation and
 cross-solver-mismatch paths that the archived healthy pair cannot
