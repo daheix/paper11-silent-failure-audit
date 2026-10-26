@@ -61,6 +61,36 @@ traceable to archived raw data (Secs.~\ref{sec:caseA}--\ref{sec:caseC}),
 (Sec.~\ref{sec:audit}), and (iv)~delimits the folklore boundary
 (Sec.~\ref{sec:folk}).
 
+\section{Related Work}
+\emph{Direct solvers in computational electromagnetism.} Sparse direct
+solvers remain the workhorse of frequency-domain FE electromagnetics,
+with an active 2023--2026 literature on parallel pipelined
+factorizations~\cite{ref01}, mixed-precision FE
+solvers~\cite{ref03}, and open-source tool
+chains~\cite{ref07}. This literature targets performance and
+scalability; the failure-mode behaviour of such solvers inside
+application pipelines is rarely reported, which is precisely the gap
+this paper documents.
+
+\emph{Silent corruption and result verification.} The HPC community
+studies silent data corruption at the bit-flip and time-stepping level
+with checkpoint/recompute or ABFT countermeasures~\cite{ref12,ref13},
+and the numerical-software community formalizes result
+verification~\cite{ref14}. Both communities assume the computation
+itself is the object of verification; none of the published work
+addresses application-level silent failures of a numerically successful
+solve, where recomputation reproduces the same wrong answer.
+
+\emph{Cage-machine FE modelling.} Frequency-domain cage-induction
+FE models with circuit coupling are established, including
+experimental torque--speed validation~\cite{ref08}, slot-permeance
+harmonics~\cite{ref10}, and electric-circuit boundary
+conditions~\cite{ref11}. Sector reduction is standard practice in this
+literature, yet its uniform-sign feasibility condition is folklore; we
+formalize it and exhibit a quantified counter-example. Hysteresis and
+mixed FE formulations~\cite{ref15,ref16} and mixed-precision
+pre-pivoting~\cite{ref17} are adjacent but orthogonal developments.
+
 \section{Failure Taxonomy}\label{sec:tax}
 \begin{table}[t]\centering\caption{Taxonomy of application-level silent
 failures observed in the study.}\label{tab:tax}
@@ -97,9 +127,13 @@ placement are identical across the threshold; (iii) bar-ratio
 normalization does not rescue $\chi=3.067$; and (iv) the serial
 SuperLU LU of the identical matrix converges in 26\,s to residual
 $2.28\times10^{-5}$, with torque $T=0.7477$\,N\,m and $B_{g1}=
-0.0158$\,T consistent with the $\chi=1$ baseline under the gap scaling
-of the family. The failure is therefore solver-specific
-(infeasibility is false), and a later confound refinement showed the
+0.0158$\,T. We claim only solvability, not magnitude correctness: the
+absolute scaling of the large geometry remains an open calibration issue
+(archived as case evidence M-ASM-18, air-gap flux at 27--28\% of the
+$\chi=1$ value against a $\times3$ analytical expectation), so the
+quantitative closure is reported as unresolved. The failure is therefore
+solver- and budget-specific (true infeasibility is excluded), and a
+later confound refinement showed the
 historical $\chi=2$ failure also carried a bar-ratio distortion:
 with the ratio normalized, $\chi=2$ solves in both solvers ($T=
 0.2495$\,N\,m, $B_{g1}=0.0363$\,T), moving the failure band to
@@ -130,16 +164,17 @@ $90^\circ$, whereas 12k-order stator-slot harmonics (k odd) are
 integer-periodic, so one Link sign cannot serve both --- the sector
 constraint is structurally infeasible for the coupled cage model, not
 merely inaccurate.
-[uniform-sign proposition + $90^\circ$/12s4p sign table Fig.4 + sector
-vs.\ full-model numbers $1.44/1.54\times$ + KCL $=0.000$ ---
-Data: data/raw/case2\_sector.]
 \section{Audit Protocol}
 The protocol ships as an executable reference implementation
 (\texttt{src/audit\_protocol.py}, bundled): steps A1--A5 consume the
 solver reports directly and emit a verdict with per-step evidence; its
 doctest suite is driven by the archived FAIL-branch and PASS-branch
-reports of Section~\ref{sec:audit} (nine assertions, all green), so the
-auditor itself is regression-tested against the same forensic data.\label{sec:audit}
+reports of Section~\ref{sec:audit} (doctest-driven: the archived
+cross-solver pair passes with the scaled-geometry disclosure semantics,
+and two synthetic fixtures exercise the NaN-propagation and
+cross-solver-mismatch paths that the archived healthy pair cannot
+reach), so the auditor itself is regression-tested against forensic
+data plus explicit fixtures.\label{sec:audit}
 Check~1 (cross-solver): on any direct-solver failure, re-solve with an
 independent factorization and compare physical quantities, not only
 residuals. Check~2 (scale band): in any geometry/scale sweep, flag runs
@@ -156,8 +191,11 @@ this paper: (i)~the failure is \emph{silent} --- every standard check
 passes; (ii)~the error is \emph{large and signed} ($+44\%$ on the
 fundamental); (iii)~in coupled cage models the infeasibility can be
 \emph{structural} (single Link sign cannot serve fundamental and teeth
-harmonics simultaneously), so no sector angle within a broad family is
-admissible;
+harmonics simultaneously): for the 12-slot/4-pole family the $90^\circ$
+sector is inadmissible under the uniform-sign condition, whereas
+$180^\circ$ passes --- the condition delineates admissible sector angles
+rather than banning them, and our executable feasibility check
+(\texttt{asm\_spec.py}) encodes exactly this test;
 \begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig4_sign_table.pdf}
 \caption{Uniform-sign feasibility table: single Link sign vs.\ significant mode order for the 12-slot/4-pole family.
 [Data: data/raw/case2\_sector.]\label{fig:sign}}\end{figure}
@@ -180,13 +218,23 @@ implementations are bundled with the manuscript sources
 (\texttt{data/raw/}, \texttt{figure/}, \texttt{src/}).
 \section*{Declaration of competing interest}
 The authors declare no competing interests.
-\begin{thebibliography}{9}
-\bibitem{sdc2011} Detection and correction of silent data corruption for
-large-scale high-performance computing, IPDPS 2011,
-doi:10.1109/ipdps.2011.379.
-\bibitem{sdc2014} Silent error detection in numerical time-stepping
-schemes, \emph{IJHPCA}, 2014, doi:10.1177/1094342014532297.
-\bibitem{resver2004} Novel approaches to numerical software with result
-verification, LNCS, 2004, doi:10.1007/978-3-540-24738-8\_17\_17.
+\begin{thebibliography}{14}
+\bibitem{ref01} Wang et al., ``Fully parallel and pipelined sparse direct solver for large symmetric indefinite finite el,'' \emph{Computers \& Mathematics with Applications}, 2024, doi:10.1016/j.camwa.2024.10.017.
+\bibitem{ref03} Suzuki et al., ``An FP16-Enabled Mixed-Precision Iterative Solver for Finite Element Electromagnetic Field ,'' \emph{IEEE Transactions on Magnetics}, 2026, doi:10.1109/tmag.2026.3724201.
+\bibitem{ref07} Otin et al., ``ERMES 20.0: Open-source finite element tool for computational electromagnetics in the freq,'' \emph{Computer Physics Communications}, 2025, doi:10.1016/j.cpc.2025.109521.
+\bibitem{ref08} Barzola et al., ``Magnetic Field Simulation and Torque-Speed Performance of a Single-Phase Squirrel-Cage Ind,'' \emph{Machines}, 2025, doi:10.3390/machines13060492.
+\bibitem{ref10} Nandi et al., ``Slot permeance effects on rotor slot harmonics in induction machines,'' \emph{IEEE International Electric Machines and}, ?, doi:10.1109/iemdc.2003.1210670.
+\bibitem{ref11} Ciuprina et al., ``Electric circuit element boundary conditions for electromagneto-quasistatic and full wave ,'' \emph{Journal of Mathematics in Industry}, 2024, doi:10.1186/s13362-024-00165-6.
+\bibitem{ref12} Fiala et al., ``Detection and Correction of Silent Data Corruption for Large-Scale High-Performance Comput,'' \emph{2011 IEEE International Symposium on Par}, 2011, doi:10.1109/ipdps.2011.379.
+\bibitem{ref13} Benson et al., ``Silent error detection in numerical time-stepping schemes,'' \emph{The International Journal of High Perfor}, 2015, doi:10.1177/1094342014532297.
+\bibitem{ref14} Granvilliers et al., ``Novel Approaches to Numerical Software with Result Verification,'' \emph{Lecture Notes in Computer Science}, 2004, doi:10.1007/978-3-540-24738-8\_17.
+\bibitem{ref15} Domenig et al., ``Incorporation of a 3-D Energy-Based Vector Hysteresis Model Into the Finite Element Method,'' \emph{IEEE Transactions on Magnetics}, 2024, doi:10.1109/tmag.2024.3387354.
+\bibitem{ref16} Montoison et al., ``M
+                    in
+                    A
+                    res
+                   ,'' \emph{SIAM Journal on Matrix Analysis and Appl}, 2025, doi:10.1137/23m1605454.
+\bibitem{ref17} Sahraneshinsamani et al., ``Mixed-precision pre-pivoting strategy for the LU factorization,'' \emph{The Journal of Supercomputing}, 2025, doi:10.1007/s11227-024-06523-w.
+
 \end{thebibliography}
 \end{document}
