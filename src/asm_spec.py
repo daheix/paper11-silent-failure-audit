@@ -58,12 +58,19 @@ import math
 import os
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_CONST = os.path.join(os.path.dirname(os.path.dirname(_HERE)), "constants")
+# 打包自包含 (m20): doctest 在仓库源码树与捆绑包两处均可解析 constants;
+# 环境变量 CHINASIM_MOTOR_CONSTANTS 可显式覆盖 (CI/部署场景)。
+_CONST = os.environ.get("CHINASIM_MOTOR_CONSTANTS") or os.path.join(
+    os.path.dirname(os.path.dirname(_HERE)), "constants")
 
 
 def load_asm_spec():
     """ASM 口径默认值 — 单一事实源 constants/asm_design.json。"""
-    with open(os.path.join(_CONST, "asm_design.json"), encoding="utf-8") as f:
+    path = os.path.join(_CONST, "asm_design.json")
+    if not os.path.exists(path):
+        # 捆绑包回退: 与本模块同目录的 asm_design.snapshot.json (发布物内打包)
+        path = os.path.join(_HERE, "asm_design.snapshot.json")
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 

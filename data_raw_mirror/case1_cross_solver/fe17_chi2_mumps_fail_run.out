@@ -1,0 +1,17 @@
+/home/wsc/wsc/ChinaSimStdio/src/plugins/motor_workbench/simulation/getdp/run_emag_asm.py:493: RuntimeWarning: invalid value encountered in multiply
+  bx = vs[:, 0] + 1j * vs[:, 3]
+/home/wsc/wsc/ChinaSimStdio/src/plugins/motor_workbench/simulation/getdp/run_emag_asm.py:494: RuntimeWarning: invalid value encountered in multiply
+  by = vs[:, 1] + 1j * vs[:, 4]
+/home/wsc/wsc/ChinaSimStdio/src/plugins/motor_workbench/simulation/getdp/run_emag_asm.py:493: RuntimeWarning: invalid value encountered in multiply
+  bx = vs[:, 0] + 1j * vs[:, 3]
+/home/wsc/wsc/ChinaSimStdio/src/plugins/motor_workbench/simulation/getdp/run_emag_asm.py:494: RuntimeWarning: invalid value encountered in multiply
+  by = vs[:, 1] + 1j * vs[:, 4]
+[solver] auto → PETSc/MUMPS wrapper: /home/wsc/wsc/ChinaSimStdio/bin/third_party/getdp/bin/getdp-petsc
+[params] UI参数覆盖: ['L_stack', 'Nc', 'R_ri', 'R_shaft', 'R_si', 'R_so', 'T_Magnet_C', 'eccentricity_mm', 'halbach_segments', 'layers_per_slot', 'mag_half_deg', 'mag_t', 'magnetization', 'n_poles', 'n_slots', 'p', 'parallel_paths', 'phase_count', 'slot_depth', 'slot_half_deg', 'winding_layout']
+[override] bar_diameter_mm = 12.0
+[override] ring_radius_mm = 70.0
+[override] ring_bar_diameter_mm = 18.0
+[override] dtheta_max_deg = 2.5
+  s=0.05  T_avg=+nan Nm  Bg1=nan T  P_cuR=nanW  resid=nan  KCL=nan
+=== ASM 物理自检 ===  场有效=False 恢复单调=False 有限=False → FAIL
+总耗时 37.0s → asm_report.json

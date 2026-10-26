@@ -20,7 +20,7 @@ FIG = ROOT / "figure"
 plt.rcParams.update({"font.size": 9, "figure.dpi": 200})
 
 # --- Fig1 threshold ladder -------------------------------------------------
-# sources: chi=1.0   -> data/raw/e7_protocol_pass/asm_report.json (s=0.05, js=3A/mm^2)
+# sources: chi=1.0   -> data/raw/case1_scale_ladder/asm_full16d_report.json (slip 0.05 row)
 #          chi=1.5   -> archive fe16 (pathological half-field, same operating point)
 #          chi=1.75  -> archive fe14b (healthy)
 #          chi=2.0   -> archive fe17 bar-distorted run -> abort; normalized rerun PASS
@@ -41,13 +41,13 @@ for s, b, st, note in pts:
     else:
         c = {"PASS": "tab:blue", "pathological": "tab:orange"}[st]
         ax.plot([s], [b], "o", color=c)
-        ax.annotate(f"{b:.4f}", (s, b), textcoords="offset points",
-                    xytext=(0, 6), fontsize=6.5, ha="center")
+        ax.annotate(f"{b:.4f}\n[{note}]", (s, b), textcoords="offset points",
+                    xytext=(0, 8), fontsize=5.2, ha="center")
 ax.axvspan(2.0, 3.067, color="tab:red", alpha=0.08)
 ax.annotate("failure band\n(2.0, 3.067]", (2.55, 0.055), fontsize=7,
             ha="center", color="tab:red")
 ax.set_xlabel("geometry scale factor χ")
-ax.set_ylabel("Bg1 (T) at s=0.05, js=3 A/mm²")
+ax.set_ylabel("Bg1 (T); PASS/pathological points at s=0.05,\njs=3 A/mm²; abort points at s=1 (fe17)")
 ax.set_ylim(-0.012, 0.135)
 ax.set_title("Fig.1 Threshold ladder (bar geometry annotated per point)",
              fontsize=8.5)

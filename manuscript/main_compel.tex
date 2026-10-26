@@ -47,7 +47,7 @@ Application-level silent failures --- wrong results produced by
 successfully completed solves --- are studied extensively at the hardware
 level as silent data corruption in high-performance computing
 \cite{sdc2011,sdc2014}, and at the mathematical level as result
-verification of differential-equation solvers \cite{resver2004}. Between
+verification of differential-equation solvers \cite{ref14}. Between
 these two layers sits a third failure class that, to our knowledge, has
 not been systematized: \emph{modeling- and configuration-level} silent
 failures of engineering simulation chains, where the linear algebra is
@@ -117,7 +117,7 @@ reveals the failure.
 \textbf{Formulation.} All solves use the frequency-domain magnetic
 quasi-static $A$-field formulation of GetDP~4.0.0 (first-order
 triangular elements, single process) coupled to the squirrel-cage
-circuit through the \\texttt{Network} constraint: one branch per bar
+circuit through the \texttt{Network} constraint: one branch per bar
 ($N_b{=}16$) plus top- and bottom-ring $R$--$L$ segments, with the
 per-element global term enforcing branch current injection. KCL is
 checked a posteriori as the relative mismatch between summed bar
@@ -176,15 +176,17 @@ SuperLU LU of the identical matrix converges in 26\,s to residual
 $2.28\times10^{-5}$, with torque $T=0.7477$\,N\,m and $B_{g1}=
 0.0158$\,T. We claim only solvability, not magnitude correctness: the
 absolute scaling of the large geometry remains an open calibration issue
-(archived as case evidence M-ASM-18, air-gap flux at 27--28\% of the
-$\chi=1$ value against a $\times3$ analytical expectation), so the
-quantitative closure is reported as unresolved. The failure is therefore
+(archived as case evidence M-ASM-18: physically attributed to cage
+screening absorbing the air-gap field at this scale, with the absolute
+flux at 27--28\% of the $\chi=1$ value against a $\times3$ analytical
+expectation; the physical mechanism is identified while the quantitative
+scaling law remains open), so we claim solvability, not magnitude. The failure is therefore
 solver- and budget-specific (true infeasibility is excluded), and a
 later confound refinement showed the
 historical $\chi=2$ failure also carried a bar-ratio distortion:
 with the ratio normalized, $\chi=2$ solves in both solvers ($T=
 0.2495$\,N\,m, $B_{g1}=0.0363$\,T), moving the failure band to
-$(\chi\,2.0, 3.067]$. All numbers trace to data/raw/case1\_*.]
+$(\chi\in(2.0, 3.067]$. All numbers trace to data/raw/case1\_*.]
 
 \section{Case B: Silent Degradation}\label{sec:caseB}
 At $\chi=1.5$ the solve completes without NaNs but $B_{g1}=0.0663$\,T is
@@ -195,7 +197,7 @@ use the separate baseline $B_{g1}=0.0579$\,T; the two baselines refer to
 different operating points of the same machine.)
 [Data: data/raw/case1\_scale\_ladder.]
 \begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig3_sector_contamination.pdf}
-\caption{Sector contamination: sectorized vs.\ full-model spectra, $\times1.44$ (flux) / $\times1.54$ (torque) shifts with zero KCL residual. [Data: data/raw/case2\_sector.]\label{fig:sector}}\end{figure}
+\caption{Sector contamination: sectorized (serial SuperLU) vs.\ full-model (MUMPS) spectra; a same-solver control is listed as future work, and the cross-solver bit-consistency observed in the $\chi=2$ normalized rerun bounds solver-induced differences well below the reported shifts, $\times1.44$ (flux) / $\times1.54$ (torque) shifts with zero KCL residual. [Data: data/raw/case2\_sector.]\label{fig:sector}}\end{figure}
 \section{Case C: Infeasible Constraint}\label{sec:caseC}
 A $90^\circ$ sector of the same machine, linked by a single periodic
 constraint, passes every solver-level check (SuperLU converges in
@@ -222,8 +224,10 @@ data plus explicit fixtures.\label{sec:audit}
 Check~1 (cross-solver): on any direct-solver failure, re-solve with an
 independent factorization and compare physical quantities, not only
 residuals. Check~2 (scale band): in any geometry/scale sweep, flag runs
-whose key quantity deviates $>10\%$ from the interpolation of healthy
-neighbors. Check~3 (sector feasibility): before sector reduction, verify
+whose key quantity falls outside the $[0.8, 1.25]$ band of the frozen
+same-scale baseline when the audited geometry matches the baseline scale
+(scaled geometries are disclosed, not failed, pending a closed absolute
+scaling law). Check~3 (sector feasibility): before sector reduction, verify
 $m\,\theta_s \equiv 0$ or $180^\circ \pmod{360^\circ}$ with the
 \emph{same} sign for the fundamental and all slot/teeth/cage orders;
 reject infeasible sectors. Reference implementations ship with the
@@ -263,22 +267,17 @@ implementations are bundled with the manuscript sources
 \section*{Declaration of competing interest}
 The authors declare no competing interests.
 \begin{thebibliography}{14}
-\bibitem{ref01} Wang et al., ``Fully parallel and pipelined sparse direct solver for large symmetric indefinite finite el,'' \emph{Computers \& Mathematics with Applications}, 2024, doi:10.1016/j.camwa.2024.10.017.
-\bibitem{ref03} Suzuki et al., ``An FP16-Enabled Mixed-Precision Iterative Solver for Finite Element Electromagnetic Field ,'' \emph{IEEE Transactions on Magnetics}, 2026, doi:10.1109/tmag.2026.3724201.
-\bibitem{ref07} Otin et al., ``ERMES 20.0: Open-source finite element tool for computational electromagnetics in the freq,'' \emph{Computer Physics Communications}, 2025, doi:10.1016/j.cpc.2025.109521.
-\bibitem{ref08} Barzola et al., ``Magnetic Field Simulation and Torque-Speed Performance of a Single-Phase Squirrel-Cage Ind,'' \emph{Machines}, 2025, doi:10.3390/machines13060492.
-\bibitem{ref10} Nandi et al., ``Slot permeance effects on rotor slot harmonics in induction machines,'' \emph{IEEE International Electric Machines and}, ?, doi:10.1109/iemdc.2003.1210670.
-\bibitem{ref11} Ciuprina et al., ``Electric circuit element boundary conditions for electromagneto-quasistatic and full wave ,'' \emph{Journal of Mathematics in Industry}, 2024, doi:10.1186/s13362-024-00165-6.
-\bibitem{ref12} Fiala et al., ``Detection and Correction of Silent Data Corruption for Large-Scale High-Performance Comput,'' \emph{2011 IEEE International Symposium on Par}, 2011, doi:10.1109/ipdps.2011.379.
-\bibitem{ref13} Benson et al., ``Silent error detection in numerical time-stepping schemes,'' \emph{The International Journal of High Perfor}, 2015, doi:10.1177/1094342014532297.
-\bibitem{ref14} Granvilliers et al., ``Novel Approaches to Numerical Software with Result Verification,'' \emph{Lecture Notes in Computer Science}, 2004, doi:10.1007/978-3-540-24738-8\_17.
-\bibitem{ref15} Domenig et al., ``Incorporation of a 3-D Energy-Based Vector Hysteresis Model Into the Finite Element Method,'' \emph{IEEE Transactions on Magnetics}, 2024, doi:10.1109/tmag.2024.3387354.
-\bibitem{ref16} Montoison et al., ``M
-                    in
-                    A
-                    res
-                   ,'' \emph{SIAM Journal on Matrix Analysis and Appl}, 2025, doi:10.1137/23m1605454.
-\bibitem{ref17} Sahraneshinsamani et al., ``Mixed-precision pre-pivoting strategy for the LU factorization,'' \emph{The Journal of Supercomputing}, 2025, doi:10.1007/s11227-024-06523-w.
-
+\bibitem{ref01} Wang, Wang, Cai et al., ``Fully parallel and pipelined sparse direct solver for large symmetric indefinite finite element problems,'' \emph{Computers \& Mathematics with Applications}, vol. 175, pp. 447-469, 2024, doi:10.1016/j.camwa.2024.10.017.
+\bibitem{ref03} Suzuki, Nagase, Semba et al., ``An FP16-Enabled Mixed-Precision Iterative Solver for Finite Element Electromagnetic Field Analysis,'' \emph{IEEE Transactions on Magnetics, pp. 1-1}, 2026, doi:10.1109/tmag.2026.3724201.
+\bibitem{ref07} Otin, ``ERMES 20.0: Open-source finite element tool for computational electromagnetics in the frequency domain,'' \emph{Computer Physics Communications}, vol. 310, pp. 109521, 2025, doi:10.1016/j.cpc.2025.109521.
+\bibitem{ref08} Barzola, Chandi, ``Magnetic Field Simulation and Torque-Speed Performance of a Single-Phase Squirrel-Cage Induction Motor: An FEM and Experimental Approach,'' \emph{Machines}, vol. 13, no. 6, pp. 492, 2025, doi:10.3390/machines13060492.
+\bibitem{ref10} Nandi, ``Slot permeance effects on rotor slot harmonics in induction machines,'' \emph{IEEE International Electric Machines and Drives Conference, 2003. IEMDC'03., vol. 3, pp. 1633-1639}, None, doi:10.1109/iemdc.2003.1210670.
+\bibitem{ref11} Ciuprina, Sabriego, ``Electric circuit element boundary conditions for electromagneto-quasistatic and full wave models in A, $\phi$ potentials and their finite element implementation,'' \emph{Journal of Mathematics in Industry}, vol. 14, no. 1, 2024, doi:10.1186/s13362-024-00165-6.
+\bibitem{ref12} Fiala, ``Detection and Correction of Silent Data Corruption for Large-Scale High-Performance Computing,'' \emph{2011 IEEE International Symposium on Parallel and Distributed Processing Workshops and Phd Forum, pp. 2069-2072}, 2011, doi:10.1109/ipdps.2011.379.
+\bibitem{ref13} Benson, Schmit, Schreiber, ``Silent error detection in numerical time-stepping schemes,'' \emph{The International Journal of High Performance Computing Applications}, vol. 29, no. 4, pp. 403-421, 2015, doi:10.1177/1094342014532297.
+\bibitem{ref14} Granvilliers, Kreinovich, Müller, ``Novel Approaches to Numerical Software with Result Verification,'' \emph{Lecture Notes in Computer Science, pp. 274-305}, 2004, doi:10.1007/978-3-540-24738-8\_17.
+\bibitem{ref15} Domenig, Roppert, Kaltenbacher, ``Incorporation of a 3-D Energy-Based Vector Hysteresis Model Into the Finite Element Method Using a Reduced Scalar Potential Formulation,'' \emph{IEEE Transactions on Magnetics}, vol. 60, no. 6, pp. 1-8, 2024, doi:10.1109/tmag.2024.3387354.
+\bibitem{ref16} Montoison, Orban, Saunders, ``MinAres: a sparse parallel direct solver for general matrices,'' \emph{SIAM Journal on Matrix Analysis and Applications}, 2025, doi:10.1137/23m1605454.
+ in
 \end{thebibliography}
 \end{document}

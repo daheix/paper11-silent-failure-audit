@@ -1,0 +1,23 @@
+{
+ "R_shaft": 0.02,
+ "R_ri": 0.051999,
+ "mag_t": 0.006,
+ "R_si": 0.059999,
+ "slot_depth": 0.024,
+ "R_so": 0.099999,
+ "slot_half_deg": 2.0,
+ "mag_half_deg": 33.75,
+ "n_slots": 12,
+ "n_poles": 4,
+ "p": 2,
+ "L_stack": 0.1,
+ "Nc": 100.0,
+ "phase_count": 3,
+ "parallel_paths": 1,
+ "layers_per_slot": 2,
+ "winding_layout": 1,
+ "magnetization": "radial",
+ "halbach_segments": 1,
+ "eccentricity_mm": 0.0,
+ "T_Magnet_C": 20.0
+}
