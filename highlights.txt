@@ -1,0 +1,7 @@
+*** Highlights (COMPEL submission, paper11)
+
+- Three silent-failure classes in electrical-machine FE are forensically quantified.
+- A sparse direct solver falsely reports singularity; a serial LU resolves the same matrix in 26 s.
+- A converged sector-reduced cage model shifts the fundamental by +44% with zero KCL residual.
+- A converged scale-neighbor solve silently degrades the air-gap field to 58% of baseline.
+- A three-audit trust protocol (cross-solver, scale band, uniform sign) is formalized with executable criteria.

@@ -1,0 +1,22 @@
+params x2: {'R_si': 0.06, 'R_rm': 0.058, 'R_so': 0.1, 'n_slots': 12, 'n_poles': 4}
+[solver] auto → PETSc/MUMPS wrapper: /home/wsc/wsc/ChinaSimStdio/bin/third_party/getdp/bin/getdp-petsc
+[params] 非设计键丢弃 (5): ['bar_diameter_mm', 'dtheta_max', 'n_bars', 'rotor_angle_deg', 'rotor_type']
+[params] UI参数覆盖: ['ALPHA_BR', 'Br', 'Hc0', 'L_stack', 'Nc', 'R_ri', 'R_rm', 'R_shaft', 'R_si', 'R_so', 'T_Magnet_C', 'eccentricity_mm', 'halbach_segments', 'layers_per_slot', 'mag_half_deg', 'mag_t', 'magnetization', 'mur_mag', 'n_poles', 'n_slots', 'p', 'parallel_paths', 'phase_count', 'r_gap_mid', 'slot_depth', 'slot_half_deg', 'winding_layout']
+[override] bar_diameter_mm = 6.0
+[override] ring_radius_mm = 70.0
+[override] ring_bar_diameter_mm = 8.0
+[override] dtheta_max_deg = 2.5
+  s=1  T_avg=+0.2495 Nm  Bg1=0.0363 T  P_cuR=68.42W  resid=None  KCL=0.000
+=== ASM 物理自检 ===  场有效=True 恢复单调=True 有限=True → PASS
+总耗时 43.9s → asm_report.json
+[solver] auto → PETSc/MUMPS wrapper: /home/wsc/wsc/ChinaSimStdio/bin/third_party/getdp/bin/getdp-petsc
+[params] 非设计键丢弃 (5): ['bar_diameter_mm', 'dtheta_max', 'n_bars', 'rotor_angle_deg', 'rotor_type']
+[params] UI参数覆盖: ['ALPHA_BR', 'Br', 'Hc0', 'L_stack', 'Nc', 'R_ri', 'R_rm', 'R_shaft', 'R_si', 'R_so', 'T_Magnet_C', 'eccentricity_mm', 'halbach_segments', 'layers_per_slot', 'mag_half_deg', 'mag_t', 'magnetization', 'mur_mag', 'n_poles', 'n_slots', 'p', 'parallel_paths', 'phase_count', 'r_gap_mid', 'slot_depth', 'slot_half_deg', 'winding_layout']
+[override] bar_diameter_mm = 6.0
+[override] ring_radius_mm = 70.0
+[override] ring_bar_diameter_mm = 8.0
+[override] dtheta_max_deg = 2.5
+  s=1  T_avg=+0.2495 Nm  Bg1=0.0363 T  P_cuR=68.42W  resid=None  KCL=0.000
+=== ASM 物理自检 ===  场有效=True 恢复单调=True 有限=True → PASS
+总耗时 58.7s → asm_report.json
+E7b done: /home/wsc/wsc/ChinaSimStdio/sci/paper11_solver_false_singular/data/raw/e7_protocol_fail

@@ -1,0 +1,72 @@
+{
+ "params": {
+  "line_freq_hz": 50.0,
+  "js_peak_Am2": 3000000.0,
+  "slips": [
+   1.0
+  ],
+  "n_bars": 16,
+  "bar_diameter_mm": 6.0,
+  "ring_radius_mm": 70.0,
+  "ring_bar_diameter_mm": 8.0,
+  "Rring_ohm": 1.5625e-05,
+  "n_poles": 4,
+  "n_slots": 12,
+  "L_stack_m": 0.1,
+  "Flag_IronLinear": 1,
+  "mur_iron_effective": 1000.0
+ },
+ "model": "cage_bars_circuit_freq_domain",
+ "disclosure": "M-ASM-2 频域相量稳态 (已消账 M-ASM-2b/2c): 教程 8 复刻锚定位两根因 — ①导条空间 GlobalQuantity AliasOf/AssociatedWith 指派反转 (转置装配→电路视导条开路); ②频域分布源须 Complex[Cos,Sin] 相量常数 (F_Cos_wt_p 在区域函数内求值为零)。两修后开笼 0.4437T (=三相常数源一半, 自洽), 环开路判别证明局部涡流装配正确; 环闭合时零阻笼 (R_seg=31µΩ) 频域稳态 λ≈0 磁链冻结 → 高转差深度屏蔽为物理正确行为。求解在转子系, 定子源相量频率 = slip x f_line, 单次线性解/点。已披露口径: 频域线性铁磁 (有效割线 Mur=1000, M-ASM-3 谐波饱和待做 — 定量精度主缺口); 端部环集总电阻; 时均转矩 = (L r^2/2 mu0) Re(Bn Bt*) 积分。",
+ "log": [
+  "mesh: 5.3s",
+  "asm pro: n_bars=16 n_sect=None 生成",
+  "solve_slip(s=1.0,fs=50Hz,Rring=1.563e-05): 5.6s rss=554.4MB"
+ ],
+ "slip_sweep": {
+  "rows": [
+   {
+    "slip": 1.0,
+    "mode": "standstill 启动 (s=1)",
+    "torque_avg_Nm": 0.2495,
+    "Bg1_amp_T": 0.0363,
+    "travelling_ratio": 0.118,
+    "p_cu_rotor_W": 68.422,
+    "p_airgap_W": null,
+    "slip_resid": null,
+    "kcl_resid": 0.0,
+    "Rring_ohm": 1.5625e-05,
+    "source_freq_hz": 50.0,
+    "solve_s": 10.0,
+    "peak_rss_mb": 554.4
+   }
+  ]
+ },
+ "physics_check": {
+  "bg1_min_T": 0.0363,
+  "bg1_floor_T": 0.001,
+  "field_sanity_pass": true,
+  "bg1_at_smin_T": 0.0363,
+  "bg1_at_smax_T": 0.0363,
+  "recovery_pass": true,
+  "finite_torque_pass": true,
+  "note": "物理自检 (M-ASM-2g 定稿, MUMPS 直接法 5 点实证): ①场量有效性 Bg1 全点 > 1e-3T; ②低滑差恢复单调 Bg1(s_min) ≥ Bg1(s_max) — 转子系源频率越低导条越透明, 气隙基波单调恢复 (实测 0.0286→0.0591T @ s=1→0.02); ③全点转矩有限。M-ASM-2h PETSc/MUMPS 直接法链路: CHINASIM_GETDP_BIN 指向 PETSc build + PETSC_OPTIONS='-ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps' + LD_LIBRARY_PATH (fenicsx MPI + petsc lib)。 R13 永久化: bin/third_party/getdp/bin/getdp-petsc wrapper 固化库解析 (miniconda fenicsx libpetsc 3.25.5 带 MUMPS 置前 + third_party petsc lib) 与 PETSC_OPTIONS, 驱动器 auto 探测 (CHINASIM_GETDP_BIN 显式 > wrapper > Sparskit); 2 点复跑 Bg1 0.0286/0.0559T 与 R11 逐位一致。",
+  "pass": true,
+  "power_flow": {
+   "verdict": "PASS",
+   "max_resid": null,
+   "note": "全部点 s=1 堵转 (残差无信息), 无可判点",
+   "kcl_resid_max": 0.0
+  }
+ },
+ "runtime_s": 43.9,
+ "solver_timing": {
+  "solver_binary": "getdp-petsc(PETSc/MUMPS double 直接法)",
+  "points_solved": 1,
+  "solve_s_total": 10.0,
+  "solve_s_avg": 10.0,
+  "solve_s_max": 10.0,
+  "peak_rss_mb_max": 554.4,
+  "note": "逐点 wall time 为 GetDP 子进程耗时 (mesh 复用, 单 System 生成); MUMPS 直接法 ~94-227s/点@34k DOF, 后期优化基线"
+ }
+}

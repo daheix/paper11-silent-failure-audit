@@ -1,0 +1,8 @@
+[solver] auto → PETSc/MUMPS wrapper: /home/wsc/wsc/ChinaSimStdio/bin/third_party/getdp/bin/getdp-petsc
+[override] bar_diameter_mm = 3.0
+[override] ring_radius_mm = 35.0
+[override] ring_bar_diameter_mm = 4.0
+[override] dtheta_max_deg = 2.5
+  s=1  T_avg=+0.0393 Nm  Bg1=0.0579 T  P_cuR=10.32W  resid=None  KCL=0.000
+=== ASM 物理自检 ===  场有效=True 恢复单调=True 有限=True → PASS
+总耗时 14.8s → asm_report.json

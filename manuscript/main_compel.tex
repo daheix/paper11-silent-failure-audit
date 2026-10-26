@@ -1,0 +1,181 @@
+% Paper 11 v2 (Route A): Silent-Failure Taxonomy and Audit Protocol
+% Target: COMPEL (Elsevier, elsarticle one-column). Two-column IEEE draft kept in main.tex
+\documentclass[preprint,12pt]{elsarticle}
+\usepackage{amsmath,graphicx,booktabs,url}
+\journal{COMPEL - The international journal for computation and
+mathematics in electrical and electronic engineering}
+\begin{document}
+\begin{frontmatter}
+\title{Silent Failures in Frequency-Domain Finite-Element Analysis of
+Cage Induction Motors: A Taxonomy, Forensic Case Studies, and an Audit
+Protocol}
+\author[a]{Anonymous\corref{cor1}}
+\ead{author@example.org}
+\cortext[cor1]{Corresponding author.}
+\affiliation[a]{organization={ChinaSim Stdio Motor Workbench},
+addressline={In-house research}, city={Beijing}, country={China}}
+\begin{abstract}
+Finite-element analysis of cage induction motors couples magnetic field
+unknowns with circuit unknowns and, in multi-pole geometries, periodic
+sector constraints. We show that this class of simulation fails in a
+characteristic way: the solver converges, network conservation residuals
+are exactly zero, and no warning is emitted --- yet the reported quantity
+is wrong. We document three forensic cases on an open-source GetDP~4.0.0
+toolchain: (A)~a sparse direct solver (MUMPS) reporting a false
+singularity on a nonsingular coupled system, resolved by an independent
+factorization in 26\,s (residual $2.28\times10^{-5}$); (B)~a ``half-field''
+solution at an intermediate geometric scale, physically wrong by 42\% with
+no numerical diagnostic; (C)~sector reduction violating a uniform-sign
+condition on harmonic commensurability, inflating the air-gap fundamental
+by $1.44\times$ while KCL remains $0.000$. From the taxonomy we derive a
+three-check audit protocol --- cross-solver verdict, scale
+self-consistency band, and sector feasibility --- each with an executable
+criterion, and we release reference implementations. We delimit what is
+folklore (sign intuition for periodic boundaries) from what is not (the
+silence of the failures, their quantitative extent, and the audit
+coverage gap). All quantitative claims trace to archived raw data.
+\end{abstract}
+\begin{keyword}
+induction motor \sep finite element \sep silent failure \sep direct
+solver \sep periodic boundary condition \sep verification protocol
+\end{keyword}
+\end{frontmatter}
+
+\section{Introduction}
+Application-level silent failures --- wrong results produced by
+successfully completed solves --- are studied extensively at the hardware
+level as silent data corruption in high-performance computing
+\cite{sdc2011,sdc2014}, and at the mathematical level as result
+verification of differential-equation solvers \cite{resver2004}. Between
+these two layers sits a third failure class that, to our knowledge, has
+not been systematized: \emph{modeling- and configuration-level} silent
+failures of engineering simulation chains, where the linear algebra is
+performed correctly on the wrong system, or the right system under an
+infeasible constraint. During a frequency-domain cage-motor study on an
+open-source toolchain we collected three such failures with complete
+forensics. This paper (i)~organizes them into a taxonomy
+(Sec.~\ref{sec:tax}), (ii)~presents the forensics with all numbers
+traceable to archived raw data (Secs.~\ref{sec:caseA}--\ref{sec:caseC}),
+(iii)~distills a three-check audit protocol with executable criteria
+(Sec.~\ref{sec:audit}), and (iv)~delimits the folklore boundary
+(Sec.~\ref{sec:folk}).
+
+\section{Failure Taxonomy}\label{sec:tax}
+\begin{table}[t]\centering\caption{Taxonomy of application-level silent
+failures observed in the study.}\label{tab:tax}
+\begin{tabular}{p{2.6cm}p{3.2cm}p{3.4cm}p{2.6cm}}\toprule
+class & mechanism & detectable by & forensic case \\\midrule
+F1 false infeasibility & solver-specific factorization failure on a
+nonsingular coupled system & cross-solver verdict & A
+(Sec.~\ref{sec:caseA})\\
+F2 silent degradation & scale-dependent conditioning yields a
+pathological solution without NaNs & scale self-consistency band & B
+(Sec.~\ref{sec:caseB})\\
+F3 infeasible constraint & periodic constraint with conflicting
+harmonic signs projects onto a nonphysical subspace & sector feasibility
+(uniform-sign) test & C (Sec.~\ref{sec:caseC})\\\bottomrule
+\end{tabular}\end{table}
+Table~\ref{tab:tax} defines the three classes. Their common signature is
+the \emph{absence of alarms}: residual checks, conservation laws, and
+solver exit codes all pass; only cross-validation of physical quantities
+reveals the failure.
+
+\begin{figure}[t]\centering\includegraphics[width=0.85\columnwidth]{../../figure/fig1_threshold_ladder.pdf}
+\caption{Failure threshold ladder for the scaled cage model: MUMPS outcome vs.\ geometry scale factor and solver. [Data: data/raw/case1\_scale\_ladder.]\label{fig:threshold}}\end{figure}
+\section{Case A: False Infeasibility}\label{sec:caseA}
+A scaled 16-bar cage model ($\chi$ = geometric scale factor on the
+12-slot/4-pole ASM baseline) is solved frequency-domain at slip $s=1$.
+For $\chi\le1.75$ the MUMPS direct solve succeeds; at $\chi=2$ it
+terminates with error $-19$ (matrix singularly leading to an all-NaN
+field) in 37\,s, and at $\chi=3.067$ the same failure persists under
+out-of-core settings (81.2\,s, all-NaN). Four exclusions pin the cause:
+(i) a pure-field bisection with all circuit terms commented out still
+reports $-19$; (ii) mesh quality, group integrity, and Dirichlet
+placement are identical across the threshold; (iii) bar-ratio
+normalization does not rescue $\chi=3.067$; and (iv) the serial
+SuperLU LU of the identical matrix converges in 26\,s to residual
+$2.28\times10^{-5}$, with torque $T=0.7477$\,N\,m and $B_{g1}=
+0.0158$\,T consistent with the $\chi=1$ baseline under the gap scaling
+of the family. The failure is therefore solver-specific
+(infeasibility is false), and a later confound refinement showed the
+historical $\chi=2$ failure also carried a bar-ratio distortion:
+with the ratio normalized, $\chi=2$ solves in both solvers ($T=
+0.2495$\,N\,m, $B_{g1}=0.0363$\,T), moving the failure band to
+$(\chi\,2.0, 3.067]$. All numbers trace to data/raw/case1\_*.]
+\begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig2_cross_solver.pdf}
+\caption{Cross-solver decision: same matrix solved by MUMPS (reported singular) and SuperLU (converged), quantified.
+[Data: data/raw/case1\_cross\_solver.]\label{fig:cross}}\end{figure}
+
+\section{Case B: Silent Degradation}\label{sec:caseB}
+At $\chi=1.5$ the solve completes without NaNs but $B_{g1}=0.0663$\,T is
+$58\%$ of the self-consistent value ($0.1141$ at $\chi=1$ and $0.1161$
+at $\chi=1.75$): a $42\%$ silent error bracketed by two healthy runs.
+[Data: data/raw/case1\_scale\_ladder.]
+\begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig3_sector_contamination.pdf}
+\caption{Sector contamination: sectorized vs.\ full-model spectra, $\times1.44$ fundamental shift with zero KCL residual. [Data: data/raw/case2\_sector.]\label{fig:sector}}\end{figure}
+\section{Case C: Infeasible Constraint}\label{sec:caseC}
+A $90^\circ$ sector of the same machine, linked by a single periodic
+constraint, passes every solver-level check (SuperLU converges in
+6.2\,s, KCL residual $0.000$) yet reports $T=0.0605$\,N\,m and
+$B_{g1}=0.0833$\,T against the full-model $T=0.0393$\,N\,m,
+$B_{g1}=0.0579$\,T: a $\times1.44$ (torque) and $\times1.54$
+(flux-density) signed shift with no alarm. The mechanism is order
+incompatibility: the fundamental (order 2) is anti-periodic over
+$90^\circ$, whereas 12k-order stator-slot harmonics (k odd) are
+integer-periodic, so one Link sign cannot serve both --- the sector
+constraint is structurally infeasible for the coupled cage model, not
+merely inaccurate.
+[uniform-sign proposition + $90^\circ$/12s4p sign table Fig.4 + sector
+vs.\ full-model numbers $1.44/1.54\times$ + KCL $=0.000$ ---
+Data: data/raw/case2\_sector.]
+\section{Audit Protocol}\label{sec:audit}
+Check~1 (cross-solver): on any direct-solver failure, re-solve with an
+independent factorization and compare physical quantities, not only
+residuals. Check~2 (scale band): in any geometry/scale sweep, flag runs
+whose key quantity deviates $>10\%$ from the interpolation of healthy
+neighbors. Check~3 (sector feasibility): before sector reduction, verify
+$m\,\theta_s \equiv 0$ or $180^\circ \pmod{360^\circ}$ with the
+\emph{same} sign for the fundamental and all slot/teeth/cage orders;
+reject infeasible sectors. Reference implementations ship with the
+paper sources.
+\section{What Is Obvious and What Is Not}\label{sec:folk}
+That periodic boundaries should match harmonic periods is folklore, and
+simulator guides warn about it. What is not folklore, and what motivates
+this paper: (i)~the failure is \emph{silent} --- every standard check
+passes; (ii)~the error is \emph{large and signed} ($+44\%$ on the
+fundamental); (iii)~in coupled cage models the infeasibility can be
+\emph{structural} (single Link sign cannot serve fundamental and teeth
+harmonics simultaneously), so no sector angle within a broad family is
+admissible;
+\begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig4_sign_table.pdf}
+\caption{Uniform-sign feasibility table: single Link sign vs.\ significant mode order for the 12-slot/4-pole family.
+[Data: data/raw/case2\_sector.]\label{fig:sign}}\end{figure}
+ (iv)~an analogous silence holds for F1 and F2, and no
+published protocol covers the three jointly for electrical-machine FE.
+\section{Implications for Simulation and Geometry Pipelines}
+(G1) bar-ratio normalization; (G2) sector pre-check; (G3) scale-band
+self-consistency; (G4) solver escalation before model changes. All four
+are implemented in our toolchain and referenced from the case
+forensics above.
+\section{Conclusion}
+Application-level silent failures in electrical-machine FE form a
+coherent class with a shared signature (no alarms) and complementary
+audits (cross-solver, scale band, uniform sign). The three forensic
+cases, the executable protocol, and the archived data are released to
+make such audits routine.
+\section*{Data availability}
+Raw solve logs, archived reports, generated figures, and reference
+implementations are bundled with the manuscript sources
+(\texttt{data/raw/}, \texttt{figure/}, \texttt{src/}).
+\section*{Declaration of competing interest}
+The authors declare no competing interests.
+\begin{thebibliography}{9}
+\bibitem{sdc2011} Detection and correction of silent data corruption for
+large-scale high-performance computing, IPDPS 2011,
+doi:10.1109/ipdps.2011.379.
+\bibitem{sdc2014} Silent error detection in numerical time-stepping
+schemes, \emph{IJHPCA}, 2014, doi:10.1177/1094342014532297.
+\bibitem{resver2004} Novel approaches to numerical software with result
+verification, LNCS, 2004, doi:10.1007/978-3-540-24738-8\_17.
+\end{thebibliography}
+\end{document}

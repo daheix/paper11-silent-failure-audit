@@ -1,0 +1,56 @@
+{
+ "M-ASM-15": {
+  "title": "大尺度 cage 模型 MUMPS -19 实为求解器特定失败 (非真奇异), SuperLU 串行可解",
+  "date": "2026-10-25",
+  "evidence": {
+   "MUMPS_路径": "x1.0 PASS / x1.5 半场伪解 / x1.75 PASS / x2.0 -19 (37s nan) / x3.067 -19; 纯场二分+缩放77+OOC+SigBar=0 均无效; ICNTL24/11/13 INFO 打印全断 (PETSc wrapper 屏蔽)",
+   "SuperLU_路径": "fe19/fe20 (R_si 92 ×3.067 全模型 16 条笼 js3e6 s=1): T=0.7477Nm Bg1=0.0158T KCL=0.000 求解 26s 全流程 125.9s PASS",
+   "换行走廊": "bin/third_party/petsc 重编 ×2 (--download-superlu_dist=1 mpi + --download-superlu=1 seq), 配方留档 petsc/buildcmd/configure.sh; seqaij 矩阵只能用串行 superlu"
+  },
+  "root_cause": "MUMPS 该构建/配置组合在大尺度复数 cage 矩阵上数值失败 (假 -19), 同矩阵 SuperLU LU 26s 收敛 — 求解器特定, 非模型奇异",
+  "open_sub": "M-ASM-18: 大几何 Bg1=0.0158T 仅小几何 27% (fe15 0.0579T) — 气隙 3.1mm vs 1.4mm 标度初核不闭合 (×9.4 NI / ×2.2 g 应升), 待磁路分区定标",
+  "next": "superlu 路径跑大几何 11 点全表 / M-ASM-18 磁路定标 / front2 终判 (51A/mm2 线性口径→饱和修正重判)"
+ },
+ "M-ASM-16": {
+  "title": "R11 十一点曲线转矩列作废 (提取层口径 bug 残值), 已用当前链重算 PASS 结项",
+  "evidence": "fe15 (MUMPS, 当前链) @js=12A/mm2 s=1: T=0.6284Nm Bg1=0.2317T; 折算 1.5A/mm2 → Bg1=0.0290 ≈ R11 原记录 0.0286 (1.2% 自洽) 而 T 折算 0.0098 vs R11 0.0001 (98×) → 场解跨轮一致, 转矩提取层在 R11 后经 ef5263ec8/32b6ae529 大修 → 历史转矩列为 bug 残值",
+  "baseline_recalc": "asm_full16c (全模型 16 条笼, MUMPS, js=3e6, dtheta 2.5, 1273.7s) 11 点全表: s=1.0 Bg1=0.0579 T=0.0393 tr=0.295 / 0.6: 0.0793 0.0443 0.304 / 0.4: 0.0936 0.0411 0.305 / 0.3: 0.1011 0.0359 / 0.2: 0.1078 0.0273 / 0.15: 0.1105 0.0216 / 0.1: 0.1126 0.0150 / 0.07: 0.1136 0.0106 / 0.05: 0.1141 0.0076 / 0.03: 0.1144 0.0044 / 0.02: 0.1146 0.0028 tr=0.298; 物理形态: T 峰 0.0443Nm@s=0.6+起动 0.0393Nm+Bg1 恢复单调+行波度 0.30 恒带 → 第一条 GetDP 全链物理形态正确 ASM 转矩-转差曲线; R11 旧口径 js=1.5e6 场自洽 1.2%",
+  "status": "CLOSED (2026-10-25 基线重算 PASS)"
+ },
+ "M-ASM-17": {
+  "title": "cage 转子扇区模式折返电路拓扑实证场坍 (已显式阻断)",
+  "date": "2026-10-25",
+  "evidence": "asm_js17b v3: 切割边/弧/面全 Transfinite (11/3 点), Link 报 154 vs 51 且 warning 点坐标 (0.0425,-0.0009) 系 master θ=0 线点",
+  "root_cause_hypothesis": "write_asm_pro 折返段 (R93 口径: 扇区末段连扇区首节点) 的节点编号或周期约束与 cage 电流耦合项不适配 — Network 在折返拓扑下解退化",
+  "disposition": "run_emag_asm.py sector_deg+cage 显式 raise (M-ASM-17 提示全模型口径 8s/点); 扇区化对 cage 为伪需求, 修复非优先",
+  "repro": "run_emag_asm.py --sector-deg 90 --n-bars 16 ... (现在会显式报错)",
+  "status": "RESOLVED_TECH_QUANT_DISCLOSED",
+  "root_cause_chain": [
+   "1. CutB 被 Outer 钳 a=0 (groups.pro Outer=Region[14]=CutB, generate_geo 写盘残留 pid) — 已修: outer_pid 显式留存 (generate_geo.py:571-576,620)",
+   "2. asm .pro 无扇区周期约束 — 已修: write_asm_pro Constraint 段补 CutB→CutA Link (主链 M-ASM-11 R97 同口径, Case 级 If 门, 系数按半极数符号, RotatePZ 自带定义)",
+   "3. run 层 n_sect 断链 (R137 raise 改造时丢失赋值) — 已修: n_sect=int(round(360/sector_deg)) 恢复",
+   "4. [剩余] Link 节点对应性: CutA 142 vs CutB 43 节点 (GetDP 'bad correspondance of number of Nodes') — 切割面离散不同构, cut 面生成层需强制同离散 (候选: 切割边曲线 Transfinite 同点数 / 共享曲线副本), js17b 场仍 1e-5 量级 (T/P_cuR 非零提示 Link 已部分生效需复核)",
+   "4b. [同离散已达成] Transfinite 强制后 msh 实证 CutA/CutB 完全同构 (210/210 tris, 154/154 nodes, pid 12/13/14 绑定全对齐) — 剩余=GetDP Link 旋转匹配容差: Warning 'Could not find node corresponding' (θ=0 线节点旋转 -90° 后 1e-4 级偏差未匹配, 报 154 vs 51) — 下一步: 官方 SubRegion 手法对照 (machine_magstadyn_a.pro:337 SubRegion 排除 Surf_Inf/bn0/Point_ref) + 匹配容差语义核查 (Link 匹配是否要求 bit 级一致)"
+  ],
+  "next": "官方 SubRegion 对照+GetDP Link 容差语义 (gmsh/getdp 文档+源码级) → js17b 终验",
+  "resolution_2026_10_26": "5 层病灶修复链: ①Outer 残留 pid 显式留存 ②.pro Link 补 CutB→CutA ③n_sect 断链修复 ④切割边同离散 Transfinite ⑤Link 通道重定性: 面 Region 旋转精确匹配因两侧带内部三角节点坐标浮点尾数不同必失败 (js17b 实证 154 仅 51 同源线点), Periodic Surface 声明为死路 (msh2 无 $Periodic 段+geo DSL Transform 系列表 syntax error) — 正路=Link 作用在 1D 切割径向线 (CutLineA/CutLineB, 两侧线节点同源定义坐标解析相等全匹配) + 面内部 DoF 由面内变分方程自动满足周期性; 第 6 层=延拓/系数符号统一极对口径 (n_half=sd·p/180, p=n_poles/2, 两处提取 sign+.pro link_coef, 首版 n_poles 偶判→+1 延拓→bin p 恒 0); js17b 终验 (16 条笼 90° 扇区 s=1 superlu 6.2s): T=0.0605Nm Bg1=0.0833T KCL=0.000 自检 PASS; 全模型口径回归冒烟逐位一致 (0.0393/0.0579) 零影响 (sign 改动仅扇区分支)",
+  "quant_disclosure": "量值披露: 扇区 Bg1=0.0833/T=0.0605 vs 全模型 0.0579/0.0393 差 1.44-1.54× — 根因=三相激励 (时间 120° 相位×空间 120° 排布) 不满足 90° 扇区反周期延拓对称 (js(θ+90°)≠−js(θ)), 周期约束强制对称化产生量值漂移 — 扇区 cage 解算能力保留作对照, 量值以全模型口径为唯一真值 (front2 全模型 11 点/单点已实证)",
+  "perf": "扇区 6.2s/点 vs 全模型 16-30s/点 (superlu) — 相似度对照用途 2.5-5× 加速",
+  "quant_mechanism": "机理定性 (R217): 基波行波 (阶次 2) 精确满足 90° 反周期 (e^{-j2·90°}=-1), 但齿谐波族 12k±2 中 12k 阶 (同步齿谐波, k 奇) 周期与 90° 非整比 → 不满足延拓对称 → 周期约束强制对称化致场重构失真, 基波经耦合/桶泄漏被污染 → 1.44× 漂移; 相带组完整性已核 (js17b 扇区 3 槽 Ap/Cn/Bp 各 1, 赋值通道无缺)"
+ },
+ "M-ASM-18": {
+  "title": "大几何 (R_si 92mm) 气隙场整体低至小几何 27-28%, 量级定标未闭合",
+  "date": "2026-10-25",
+  "evidence": {
+   "mean_B_对比": "fe15 mean=0.124T vs fe19 mean=0.035T (28%, 与 Bg1 比 27% 一致, 空间谱形状同型非畸变)",
+   "磁路预核": "R_g19/R_g15=0.714 (大几何气隙磁阻反而小), R_iron 占比<2% 可忽略, 磁路解释不成立",
+   "解析预期": "js 体密度馈电下 a∝js·L² → B 应×3 (升), 实际×0.28 (降) — 反向定标",
+   "屏蔽机制初判": "s=1 起动工况笼反磁场屏蔽随 bar 截面积×9.4 增强方向自洽; 但 fe19 低滑差恢复不足 (s=0.02 Bg1=0.0210 仅恢复 33% vs fe15 恢复 98%) → 屏蔽非唯一机制",
+   "排除项": "Fe 差异 (fe15/fe19 s=1 同 50Hz 仍 3.6×)、Lstk 口径 (两版同 Lstk=1)、IA0 接线 (js 体密度馈电无 NI 换算)",
+   "开笼判决": "fe19 开笼 (GlobalTerm+GlobalEquation 注释, 定子js单独馈电, superlu residual 1.07e-08) mean=0.1575T: 闭笼0.035=开笼的22% → 笼屏蔽吃掉78%气隙场; fe15小几何闭笼0.124 vs fe19开笼0.1575 (×1.27, 解析×3同方向带内) → 大几何低场27%的主导机制=转子笼反磁场屏蔽 (s=1起动, bar面积×9.4→屏蔽电流增强) — 物理正确非模型病"
+  },
+  "next": "定转子场分解 (定子 js 单独馈电开笼对照) / 磁链守恒核算 (气隙磁通 vs 槽安匝积分) / Rring 量级敏感性",
+  "status": "RESOLVED-物理定性 (2026-10-25 开笼判决: 笼屏蔽主导78%; 低滑差恢复不足=bar阻抗小屏蔽消退慢, 同机制)",
+  "disposition": "大几何链口径记录真实起动屏蔽特性; 前桥终判的场判据应取额定点 (s~0.05) 并以开笼/闭笼双口径披露"
+ }
+}
