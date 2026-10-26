@@ -21,13 +21,14 @@ sector constraints. We show that this class of simulation fails in a
 characteristic way: the solver converges, network conservation residuals
 are exactly zero, and no warning is emitted --- yet the reported quantity
 is wrong. We document three forensic cases on an open-source GetDP~4.0.0
-toolchain: (A)~a sparse direct solver (MUMPS) reporting a false
-singularity on a nonsingular coupled system, resolved by an independent
-factorization in 26\,s (residual $2.28\times10^{-5}$); (B)~a ``half-field''
+toolchain: (A)~a sparse direct solver (MUMPS) aborting on a workspace-budget
+limit (\texttt{INFO(1)=-19}, ICNTL(23)) on a system that an independent
+factorization solves in 26\,s (residual $2.28\times10^{-5}$) --- the
+abort is silently propagated downstream as an all-NaN field; (B)~a ``half-field''
 solution at an intermediate geometric scale, physically wrong by 42\% with
 no numerical diagnostic; (C)~sector reduction violating a uniform-sign
 condition on harmonic commensurability, inflating the air-gap fundamental
-by $1.44\times$ while KCL remains $0.000$. From the taxonomy we derive a
+by $1.44\times$ and torque by $1.54\times$ while KCL remains $0.000$. From the taxonomy we derive a
 three-check audit protocol --- cross-solver verdict, scale
 self-consistency band, and sector feasibility --- each with an executable
 criterion, and we release reference implementations. We delimit what is
@@ -66,7 +67,7 @@ failures observed in the study.}\label{tab:tax}
 \begin{tabular}{p{2.6cm}p{3.2cm}p{3.4cm}p{2.6cm}}\toprule
 class & mechanism & detectable by & forensic case \\\midrule
 F1 false infeasibility & solver-specific factorization failure on a
-nonsingular coupled system & cross-solver verdict & A
+workspace-budget abort, silently propagated & cross-solver verdict & A
 (Sec.~\ref{sec:caseA})\\
 F2 silent degradation & scale-dependent conditioning yields a
 pathological solution without NaNs & scale self-consistency band & B
@@ -86,8 +87,9 @@ reveals the failure.
 A scaled 16-bar cage model ($\chi$ = geometric scale factor on the
 12-slot/4-pole ASM baseline) is solved frequency-domain at slip $s=1$.
 For $\chi\le1.75$ the MUMPS direct solve succeeds; at $\chi=2$ it
-terminates with error $-19$ (matrix singularly leading to an all-NaN
-field) in 37\,s, and at $\chi=3.067$ the same failure persists under
+terminates with error $-19$ --- per the MUMPS 5.8.2 sources
+(\texttt{dfac\_b.F:283}) a workspace-budget abort (ICNTL(23) exceeded), not a singularity diagnostic --- and the all-NaN field is silently
+propagated through the pipeline in 37\,s; and at $\chi=3.067$ the same failure persists under
 out-of-core settings (81.2\,s, all-NaN). Four exclusions pin the cause:
 (i) a pure-field bisection with all circuit terms commented out still
 reports $-19$; (ii) mesh quality, group integrity, and Dirichlet
@@ -103,23 +105,26 @@ with the ratio normalized, $\chi=2$ solves in both solvers ($T=
 0.2495$\,N\,m, $B_{g1}=0.0363$\,T), moving the failure band to
 $(\chi\,2.0, 3.067]$. All numbers trace to data/raw/case1\_*.]
 \begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig2_cross_solver.pdf}
-\caption{Cross-solver decision: same matrix solved by MUMPS (reported singular) and SuperLU (converged), quantified.
+\caption{Cross-solver decision: same matrix aborted by MUMPS on ICNTL(23) budget, converged by SuperLU, quantified.
 [Data: data/raw/case1\_cross\_solver.]\label{fig:cross}}\end{figure}
 
 \section{Case B: Silent Degradation}\label{sec:caseB}
 At $\chi=1.5$ the solve completes without NaNs but $B_{g1}=0.0663$\,T is
 $58\%$ of the self-consistent value ($0.1141$ at $\chi=1$ and $0.1161$
-at $\chi=1.75$): a $42\%$ silent error bracketed by two healthy runs.
+at $\chi=1.75$; both at slip $s=0.05$, \(j_s=3\,\mathrm{A/mm^2}\)): a $42\%$
+silent error bracketed by two healthy runs. (All Case-A solves at $s=1$
+use the separate baseline $B_{g1}=0.0579$\,T; the two baselines refer to
+different operating points of the same machine.)
 [Data: data/raw/case1\_scale\_ladder.]
 \begin{figure}[t]\centering\includegraphics[width=0.9\columnwidth]{../../figure/fig3_sector_contamination.pdf}
-\caption{Sector contamination: sectorized vs.\ full-model spectra, $\times1.44$ fundamental shift with zero KCL residual. [Data: data/raw/case2\_sector.]\label{fig:sector}}\end{figure}
+\caption{Sector contamination: sectorized vs.\ full-model spectra, $\times1.44$ (flux) / $\times1.54$ (torque) shifts with zero KCL residual. [Data: data/raw/case2\_sector.]\label{fig:sector}}\end{figure}
 \section{Case C: Infeasible Constraint}\label{sec:caseC}
 A $90^\circ$ sector of the same machine, linked by a single periodic
 constraint, passes every solver-level check (SuperLU converges in
 6.2\,s, KCL residual $0.000$) yet reports $T=0.0605$\,N\,m and
 $B_{g1}=0.0833$\,T against the full-model $T=0.0393$\,N\,m,
-$B_{g1}=0.0579$\,T: a $\times1.44$ (torque) and $\times1.54$
-(flux-density) signed shift with no alarm. The mechanism is order
+$B_{g1}=0.0579$\,T: a $\times1.54$ (torque, $0.0605/0.0393$) and $\times1.44$
+(flux density, $0.0833/0.0579$) (flux-density) signed shift with no alarm. The mechanism is order
 incompatibility: the fundamental (order 2) is anti-periodic over
 $90^\circ$, whereas 12k-order stator-slot harmonics (k odd) are
 integer-periodic, so one Link sign cannot serve both --- the sector
@@ -128,7 +133,13 @@ merely inaccurate.
 [uniform-sign proposition + $90^\circ$/12s4p sign table Fig.4 + sector
 vs.\ full-model numbers $1.44/1.54\times$ + KCL $=0.000$ ---
 Data: data/raw/case2\_sector.]
-\section{Audit Protocol}\label{sec:audit}
+\section{Audit Protocol}
+The protocol ships as an executable reference implementation
+(\texttt{src/audit\_protocol.py}, bundled): steps A1--A5 consume the
+solver reports directly and emit a verdict with per-step evidence; its
+doctest suite is driven by the archived FAIL-branch and PASS-branch
+reports of Section~\ref{sec:audit} (nine assertions, all green), so the
+auditor itself is regression-tested against the same forensic data.\label{sec:audit}
 Check~1 (cross-solver): on any direct-solver failure, re-solve with an
 independent factorization and compare physical quantities, not only
 residuals. Check~2 (scale band): in any geometry/scale sweep, flag runs
@@ -176,6 +187,6 @@ doi:10.1109/ipdps.2011.379.
 \bibitem{sdc2014} Silent error detection in numerical time-stepping
 schemes, \emph{IJHPCA}, 2014, doi:10.1177/1094342014532297.
 \bibitem{resver2004} Novel approaches to numerical software with result
-verification, LNCS, 2004, doi:10.1007/978-3-540-24738-8\_17.
+verification, LNCS, 2004, doi:10.1007/978-3-540-24738-8\_17\_17.
 \end{thebibliography}
 \end{document}
